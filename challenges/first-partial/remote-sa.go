@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,14 +46,29 @@ func generatePoints(s string) ([]Point, error) {
 
 // getArea gets the area inside from a given shape
 func getArea(points []Point) float64 {
-	// Your code goes here
-	return 0.0
+	// shoelace formula
+	area := 0.0
+	j := len(points) - 1
+	for i := 0; i < len(points); i++ {
+		area += (points[j].X + points[i].X) * (points[j].Y - points[i].Y)
+		j = i
+	}
+	return math.Abs(area / 2.0)
 }
 
 // getPerimeter gets the perimeter from a given array of connected points
 func getPerimeter(points []Point) float64 {
-	// Your code goes here
-	return 0.0
+	// calculate segments distance,and adding them to get perimeter
+	perimeter := 0.0
+	for i := 0; i < len(points)-1; i++ {
+		dx := (points[i+1].X - points[i].X)
+		dy := (points[i+1].Y - points[i].Y)
+		perimeter += math.Sqrt(math.Pow(dx, 2) + math.Pow(dy, 2))
+	}
+	dx := points[0].X - points[len(points)-1].X
+	dy := points[0].Y - points[len(points)-1].Y
+	perimeter += math.Sqrt(math.Pow(dx, 2) + math.Pow(dy, 2))
+	return perimeter
 }
 
 // handler handles the web request and reponds it
@@ -81,10 +97,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// Response construction
 	response := fmt.Sprintf("Welcome to the Remote Shapes Analyzer\n")
 	response += fmt.Sprintf(" - Your figure has : [%v] vertices\n", len(vertices))
-	response += fmt.Sprintf(" - Vertices        : %v\n", vertices)
-	response += fmt.Sprintf(" - Perimeter       : %v\n", perimeter)
-	response += fmt.Sprintf(" - Area            : %v\n", area)
-
+	//if there are 2 vertex, we can't calculate an area, so we skip that
+	if len(vertices) <= 2 {
+		response += fmt.Sprintf("ERROR - Your shape is not compliying with the minimum number of vertices.\n")
+	} else {
+		response += fmt.Sprintf(" - Vertices        : %v\n", vertices)
+		response += fmt.Sprintf(" - Perimeter       : %v\n", perimeter)
+		response += fmt.Sprintf(" - Area            : %v\n", area)
+	}
 	// Send response to client
 	fmt.Fprintf(w, response)
 }
