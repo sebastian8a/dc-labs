@@ -1,8 +1,64 @@
 User Guide
 ==========
 
-### Installations
+## Installations
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur vehicula mauris nisl, non vestibulum sapien vehicula ac. Aenean aliquam rutrum consectetur. Suspendisse vel ante orci. Mauris non egestas erat, porttitor sodales nunc. Aenean eros est, feugiat sit amet nunc ut, imperdiet convallis justo. Nam hendrerit ipsum eu libero vulputate, vitae sagittis orci consectetur. Morbi ac purus tellus. Cras accumsan libero rhoncus erat hendrerit egestas. Cras fermentum, diam vel ultricies consequat, lectus leo volutpat augue, at facilisis neque lacus feugiat turpis.  
+- Download the folder *second-partial*
+ 
+- Open a terminal and type the next command:
+ 
+```
+$ go get github.com/dgrijalva/jwt-go
+```
 
-Morbi pulvinar elit in purus pretium consectetur. Nulla nisl nulla, egestas accumsan lacinia iaculis, vehicula vel tellus. Pellentesque vel tristique justo. Duis lacus tellus, accumsan a enim eu, iaculis porta arcu. Suspendisse pellentesque ornare turpis vitae vestibulum. Etiam dapibus odio vel lectus posuere, id rhoncus libero sodales. Etiam dapibus ante eros, a aliquet libero cursus vel. Mauris scelerisque felis pharetra mi ultrices laoreet in vel metus.  
+This library is needed to generate a unique token for each user.
+# Using the API
+It is required to open two terminals, the first terminal will run the following command:
+
+```
+$ go run api.go
+```
+This will receive the requests from the second terminal.
+
+The existing commands are the following.
+
+## Login
+
+The *Login* command will receive an username and a password, and will generate a unique token required for the other commands.
+
+```
+$ curl -u username:password http://localhost:8080/login
+```
+
+Once its done the terminal will display the following message:
+
+```
+{
+	"message": "Hi username, welcome to the DPIP System",
+	"token" "OjIE89GzFw"
+}
+```
+
+**Note: Instead of username it will display the name introduced in the Login command**
+
+**Note 2: token provided above is just an example, in reality the token will be generated once the command executes**
+
+## Logout
+
+The *Logout* command will receive the token of the user and will revoke it.
+
+```
+$ curl -H "Authorization: Bearer <ACCESS_TOKEN>" http://localhost:8080/logout
+```
+
+Once this is done the following message will appear:
+
+```
+{
+	"message": "Bye username, your token has been revoked"
+}
+```
+
+**Note: Because the token is revoked it will no longer be valid to use, please use this command at the very end**
+
+## Upload
