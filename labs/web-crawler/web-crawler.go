@@ -13,6 +13,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -26,13 +27,12 @@ import (
 var tokens = make(chan struct{}, 20)
 
 func crawl(url string) []string {
-	fmt.Println(url)
 	tokens <- struct{}{} // acquire a token
 	list, err := links.Extract(url)
 	<-tokens // release the token
 
 	if err != nil {
-		log.Print(err)
+		//log.Print(err)
 	}
 	return list
 }
@@ -40,25 +40,48 @@ func crawl(url string) []string {
 //!-sema
 
 //!+
-func main() {
-	worklist := make(chan []string)
-	var n int // number of pending sends to worklist
+type Worklist struct {
+	urls  []string
+	depth int
+}
 
+func main() {
+	worklist := make(chan Worklist)
+	var n int // number of pending sends to worklist
+	var depth = flag.Int("depth", 0, "max depth level")
+	var filename = flag.String("results", "results.txt", "result file")
+	flag.Parse()
+	if *depth == 0 {
+		fmt.Print("Missing depth argument\n")
+		os.Exit(0)
+	}
+	newFile, err := os.Create(*filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer newFile.Close()
 	// Start with the command-line arguments.
 	n++
-	go func() { worklist <- os.Args[1:] }()
+	go func() { worklist <- Worklist{urls: flag.Args(), depth: 0} }()
 
 	// Crawl the web concurrently.
 	seen := make(map[string]bool)
 	for ; n > 0; n-- {
 		list := <-worklist
-		for _, link := range list {
-			if !seen[link] {
-				seen[link] = true
-				n++
-				go func(link string) {
-					worklist <- crawl(link)
-				}(link)
+		currentDepth := list.depth
+		for _, link := range list.urls {
+			if currentDepth <= *depth {
+				if !seen[link] {
+					seen[link] = true
+					_, err2 := newFile.WriteString(link + "\n")
+					if err2 != nil {
+						panic(err2)
+					}
+					n++
+					go func(link string) {
+						worklist <- Worklist{urls: crawl(link), depth: currentDepth + 1}
+					}(link)
+				}
 			}
 		}
 	}
