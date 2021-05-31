@@ -2,96 +2,158 @@ User Guide
 ==========
 
 ## Installations
-
-- Download the folder *second-partial*
  
-- Open a terminal and type the next command:
+- Open a terminal and type the following command:
  
 ```
-$ go get github.com/dgrijalva/jwt-go
+$ go get -v ./...
 ```
-
-This library is needed to generate a unique token for each user.
-# Using the API
-It is required to open two terminals, the first terminal will run the following command:
-
+This should install all the non-standard packages needed for the project to work properly.
+if the previous command display some error, please try the next one instead:
 ```
-$ go run api.go
+$ go get .
 ```
-This will receive the requests from the second terminal.
+We'll be working with many terminals so have some ready to work.
+# Server
+We can start the server with the following command:
+```
+$ export GO111MODULE=off
+$ go run main.go
+```
+With the server started we can use the other components of the project.
 
-The existing commands are the following.
+# Workers
+In another terminal (one for each worker) create a worker with the following command:
+```
+$ go run worker/main.go --controller <controller adress> --worker-name <name of worker>
+```
+With the worker created you can finally do some stuff.
 
-## Login
+## Image Processing
+With the help of the api.go script, we can send request to the server.
+- Login
 
 The *Login* command will receive an username and a password, and will generate a unique token required for the other commands.
 
 ```
-$ curl -u username:password http://localhost:8080/login
+curl -X POST -u username:password http://localhost:8080/login
 ```
 
 Once its done the terminal will display the following message:
 
 ```
 {
-	"message": "Hi username, welcome to the DPIP System",
-	"token" "OjIE89GzFw"
+	"message": "Hi <username>, welcome to the DPIP System",
+	"token" "<Token generated>"
 }
 ```
-
-**Note: Instead of username it will display the name introduced in the Login command**
-
-**Note 2: token provided above is just an example, in reality the token will be generated once the command executes**
-
-## Logout
+- Logout
 
 The *Logout* command will receive the token of the user and will revoke it.
 
 ```
-$ curl -H "Authorization: Bearer <ACCESS_TOKEN>" http://localhost:8080/logout
+$ curl -X DELETE -H "Authorization: <Token>" http://localhost:8080/logout
 ```
 
 Once this is done the following message will appear:
 
 ```
 {
-	"message": "Bye username, your token has been revoked"
+	"message": "Bye <username>, your token has been revoked"
 }
 ```
 
 **Note: Because the token is revoked it will no longer be valid to use, please use this command at the very end**
 
-## Upload
+- Create Workloads
 
-The *Upload* command will receive the **absolute** path of the image that you want to upload and the token of the user.
+the *workloads* command will create one workload. The job of these is to apply the filter to the images we will upload.
 
 ```
-$ curl -F 'data=@/path/to/local/image.png' -H "Authorization: Bearer <ACCESS_TOKEN>" http://localhost:8080/upload
+$ curl -X POST -H "Authorization: <Token>" -d '{"filter":"blur", "workload_name":""}' http://localhost:8080/workloads
 ```
-
-If the user introduced correctly the absolute path and the token, the following message will be displayed:
-
+If it creates the workload succesfully the following image will be displayed.
 ```
 {
-	"message": "An image has been successfully uploaded",
-	"filename": "image.png",
-	"size": "500kb"
+	Filter": "<Blur or Grayscale>",
+	"Filtered Images": "<#>",
+        "Message": "The workload has been successfully created",
+        "Running Jobs": "<#>",
+        "Status": "<Scheduling, Running, Completed>",
+        "Workload ID": "<#>",
+        "Workload Name": "<Name>"
 }
 ```
+- View Workloads
 
-## Status
+the *workloads/<workload_id>* command will display the information of the specified workload. 
+```
+$ curl -X GET -H "Authorization: <Token>" http://localhost:8080/workloads/<workload_id>
+```
+If it creates the workload succesfully the following image will be displayed.
+```
+{
+     "Filter": "<Blur or Grayscale>",
+     "Filtered Images": "<#>",
+     "Message": "Information retrieved successfully",
+     "Running Jobs": "<#>",
+     "Status": "<Scheduling, Running, Completed>",
+     "Workload ID": "<#>",
+     "Workload Name": "<Name>"
+}
+```
+- Status
 
 the *Status* command will receive the token of the user.
 
 ```
-$ curl -H "Authorization: Bearer <ACCESS_TOKEN>" http://localhost:8080/status
+$ curl -X -H "Authorization: Bearer <ACCESS_TOKEN>" http://localhost:8080/status
 ```
 
-If the token exists it will the display the user name and the current time.
+If the token exists it will the display the Number of active Workloads.
 
 ```
 {
-	"message": "Hi username, the DPIP System is Up and Running"
-	"time": "2015-03-07 11:06:39"
+	"Active Workloads": "<#>",
+     "Message": "Hi <username>, the DPIP System is Up and Running",
+     "Time": "<Actual Time>"
+}
+```
+
+- Upload Images
+
+The *images* command will receive the **absolute** path of the image that you want to upload and the token of the user.
+
+```
+$ curl -X POST -F 'data=<Absolute Path>' -H "Authorization: <Token>" -d {"workload_id":<number of workload>} http://localhost:8080/images
+```
+
+If the Image is uploaded succesfully the following message will appear:
+
+```
+{
+	"message": "An image has been successfully uploaded",
+	"workload_id": "#",
+	"image_id": "#",
+	"type": "<image type>", 
+}
+```
+
+- Download Image
+
+The *images/<image_id>* command will Download the specified image.
+
+```
+$ curl -X GET -H "Authorization: <Token>" http://localhost:8080/images/<image_id>
+```
+
+If Everything is in order it will display the following message.
+
+```
+{
+	"message": "An image has been Downloaded succesfully",
+	"workload_id": "#",
+	"image_id": "#",
+	"type": "<image type>", 
 }
 ```
